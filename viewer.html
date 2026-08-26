@@ -1,13 +1,142 @@
 <!doctype html>
 <html lang="ru">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#000"><title>Magic Colors</title>
-<style>*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden}body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",Arial,sans-serif;background:#111;color:#fff;transition:background-color .35s ease;user-select:none;-webkit-user-select:none}.screen{width:100vw;height:100dvh;display:flex;align-items:center;justify-content:center;text-align:center}.hint{font-size:clamp(20px,5vw,34px);font-weight:700;letter-spacing:.02em;text-shadow:0 2px 12px rgba(0,0,0,.25);padding:24px}.status{position:fixed;bottom:calc(14px + env(safe-area-inset-bottom));left:0;right:0;text-align:center;font-size:11px;opacity:.18}</style>
-</head><body><main class="screen"><div class="hint">Поднимите телефон</div></main><div class="status" id="status"></div>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#000000">
+  <title></title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      background: #111;
+      transition: background-color 0.25s ease;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .screen {
+      width: 100vw;
+      height: 100dvh;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="screen"></main>
+
 <script>
-const COLORS={red:'#ff3030',blue:'#2878ff',green:'#25c96f',yellow:'#ffd52e',purple:'#9b5cff',orange:'#ff8a24',pink:'#ff4fa3',cyan:'#16d9d2',black:'#000',white:'#fff'};
-const idKey='magicColorViewerId'; const id=localStorage.getItem(idKey)||crypto.randomUUID(); localStorage.setItem(idKey,id); let lastVersion=null,lastColor=null;
-function setColor(hex){if(hex===lastColor)return;lastColor=hex;document.body.style.backgroundColor=hex;document.querySelector('.hint').style.color=['#ffd52e','#16d9d2','#fff'].includes(hex)?'#111':'#fff'}
-async function poll(){try{const r=await fetch('/api/state?id='+encodeURIComponent(id),{cache:'no-store'});if(!r.ok)throw 0;const d=await r.json();if(d.version!==lastVersion||d.color!==lastColor){lastVersion=d.version;setColor(d.color)}}catch(e){}}
-poll();setInterval(poll,500);
-</script></body></html>
+
+const COLORS = [
+  "#ff3030",
+  "#2878ff",
+  "#25c96f",
+  "#ffd52e",
+  "#9b5cff",
+  "#ff8a24",
+  "#ff4fa3",
+  "#16d9d2"
+];
+
+const idKey = "magicColorViewerId";
+
+const id =
+  localStorage.getItem(idKey) ||
+  crypto.randomUUID();
+
+localStorage.setItem(idKey, id);
+
+let lastVersion = null;
+let currentColor = null;
+
+function randomColor() {
+  return COLORS[Math.floor(Math.random() * COLORS.length)];
+}
+
+function setColor(color) {
+  currentColor = color;
+  document.body.style.backgroundColor = color;
+}
+
+function localRandomColor() {
+  let color;
+
+  do {
+    color = randomColor();
+  } while (color === currentColor && COLORS.length > 1);
+
+  setColor(color);
+}
+
+// Сразу выдаём случайный цвет
+localRandomColor();
+
+async function poll() {
+
+  try {
+
+    const response = await fetch(
+      "/api/state?id=" + encodeURIComponent(id),
+      {
+        cache: "no-store"
+      }
+    );
+
+    if (!response.ok) return;
+
+    const data = await response.json();
+
+    /*
+      Если фокусник изменил состояние —
+      применяем его команду.
+    */
+
+    if (
+      data.version !== lastVersion ||
+      data.color !== currentColor
+    ) {
+
+      lastVersion = data.version;
+
+      setColor(data.color);
+    }
+
+  } catch (error) {
+    // Если интернет временно пропал,
+    // оставляем текущий цвет.
+  }
+}
+
+/*
+  Нажатие на экран зрителем.
+  Меняем цвет локально.
+*/
+
+document.body.addEventListener("click", () => {
+
+  localRandomColor();
+
+});
+
+/*
+  Следим за командами фокусника.
+*/
+
+poll();
+
+setInterval(poll, 500);
+
+</script>
+
+</body>
+</html>
